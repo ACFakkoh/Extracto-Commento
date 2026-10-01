@@ -21,9 +21,9 @@ const base = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ channel:process.env.TEST_BROWSER || 'chrome', headless:true });
 const context = await browser.newContext({ acceptDownloads:true, viewport:{width:1360,height:1050}, locale:'fr-CA' });
 const page = await context.newPage();
-const errors = [], requests = [];
+const errors = [], requests = [], writeRequests = [];
 page.on('pageerror',error => errors.push(error.message));
-page.on('request',request => requests.push(request.url()));
+page.on('request',request => { requests.push(request.url()); if (!['GET','HEAD'].includes(request.method())) writeRequests.push(request.method()); });
 const openFile = async name => {
   await page.locator('#file').setInputFiles(path.join(generated,name));
   await page.waitForFunction(() => document.querySelector('#progress-card').hidden,{ timeout:60000 });
@@ -31,6 +31,12 @@ const openFile = async name => {
 try {
   await page.goto(base);
   await page.waitForFunction(() => !document.querySelector('#choose').disabled);
+  assert.equal(await page.locator('h1').innerText(),'EXTRACTO COMMENTO');
+  assert.equal(await page.locator('.version').innerText(),'PDF · v0.8');
+  assert.equal(await page.getByText('DU PDF AU TABLEAU, SIMPLEMENT').count(),0);
+  assert.match(await page.locator('.privacy').innerText(),/100 % local[\s\S]*Aucun document n’est envoyé en ligne/);
+  assert.equal(await page.locator('footer time').getAttribute('datetime'),'2026-10-01');
+  assert.equal(await page.locator('.github-link').getAttribute('href'),'https://github.com/ACFakkoh/Extracto-Commento');
   await page.screenshot({ path:path.join(root,'tests','output','start.png'),fullPage:true });
   await openFile('annotations.pdf');
   assert.equal(await page.locator('#count').innerText(),'8');
@@ -64,6 +70,12 @@ try {
   assert.match(strings,/=1\+1/);
   assert.doesNotMatch(sheet,/<f[ >]/);
   assert.doesNotMatch(strings,/Atkins|ATRL|atkinsrealis/i);
+  const disclaimer = await page.evaluate(({sheet,strings}) => {
+    const parser = new DOMParser();
+    const index = Number(parser.parseFromString(sheet,'text/xml').querySelector('c[r="A5"] v').textContent);
+    return parser.parseFromString(strings,'text/xml').querySelectorAll('si')[index].textContent;
+  },{sheet,strings});
+  assert.equal(disclaimer,await page.locator('#disclaimer').innerText(),'Footer and Excel disclaimer must match exactly');
   await page.locator('#reset-filters').click();
   await page.locator('#language').selectOption('en');
   assert.equal(await page.locator('html').getAttribute('lang'),'en');
@@ -114,8 +126,17 @@ try {
   await partialDownload.saveAs(partialPath);
   const partialZip = await JSZip.loadAsync(await readFile(partialPath));
   assert.match(await partialZip.file('xl/sharedStrings.xml').async('string'),/Extraction partielle/);
+  await page.locator('#mode-batch').check();
+  await page.locator('#file').setInputFiles(['partial.pdf','annotations.pdf'].map(name => path.join(generated,name)));
+  await page.waitForFunction(() => document.querySelector('#progress-card').hidden);
+  assert.equal(await page.locator('#count').innerText(),'10');
+  assert.equal(await page.locator('#pages').innerText(),'3');
+  assert.equal(await page.locator('#download').isDisabled(),true);
+  assert.match(await page.locator('#warning-list').innerText(),/Pages non analysées : partial.pdf · 3/);
+  assert.match(await page.locator('#warning-list').innerText(),/texte couvert est illisible : partial.pdf · 2/);
+  assert.equal(await page.locator('#document-list .document-status').first().innerText(),'Partiel');
   await page.evaluate(() => { window.restorePdfMethods(); delete window.restorePdfMethods; });
-  await page.locator('#clear').click();
+  await page.locator('#mode-single').check();
   await page.locator('#demo').click();
   await page.waitForFunction(() => document.querySelector('#count').textContent === '5' && document.querySelector('#progress-card').hidden);
   assert.equal(await page.locator('#rows tr').count(),5);
@@ -135,6 +156,116 @@ try {
   await page.locator('#page-filter').selectOption('500');
   assert.equal(await page.locator('#rows tr').count(),1);
   assert.match(await page.locator('#rows').innerText(),/Page 500/);
+
+  // Multi-PDF selection, successive drops, source filters and one complete workbook.
+  await page.locator('#mode-batch').check();
+  assert.equal(await page.locator('#file').getAttribute('multiple'),'');
+  await page.locator('#file').setInputFiles(['annotations.pdf','empty.pdf'].map(name => path.join(generated,name)));
+  await page.waitForFunction(() => document.querySelector('#progress-card').hidden);
+  assert.equal(await page.locator('#count').innerText(),'8');
+  assert.equal(await page.locator('#document-list .done').count(),2);
+  assert.equal(await page.locator('#dropzone').isVisible(),true);
+  const drop = async name => {
+    const bytes = [...await readFile(name === 'example.pdf' ? path.join(root,name) : path.join(generated,name))];
+    await page.evaluate(({name,bytes}) => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([new Uint8Array(bytes)],name,{type:'application/pdf'}));
+      document.querySelector('#dropzone').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+    },{name,bytes});
+  };
+  await drop('example.pdf');
+  await page.waitForFunction(() => document.querySelector('#progress-card').hidden);
+  assert.equal(await page.locator('#count').innerText(),'13');
+  assert.equal(await page.locator('#pages').innerText(),'3');
+  assert.equal(await page.locator('#document-list .done').count(),3);
+  assert.equal(await page.locator('#rows tr').count(),13);
+  assert.equal(await page.locator('#rows tr:last-child td:first-child').innerText(),'13');
+  await page.locator('#file-filter').selectOption({label:'example.pdf'});
+  assert.equal(await page.locator('#rows tr').count(),5);
+  assert.equal(await page.locator('#download').innerText(),'Télécharger Excel · 13');
+  const batchDownloadPromise = page.waitForEvent('download');
+  await page.locator('#download').click();
+  const batchDownload = await batchDownloadPromise;
+  assert.equal(batchDownload.suggestedFilename(),'Extracto_Commento_lot_extraction_comm.xlsx');
+  const batchPath = path.join(root,'tests','output','batch.xlsx');
+  await batchDownload.saveAs(batchPath);
+  const batchZip = await JSZip.loadAsync(await readFile(batchPath));
+  const batchSheet = await batchZip.file('xl/worksheets/sheet1.xml').async('string');
+  const batchStrings = await batchZip.file('xl/sharedStrings.xml').async('string');
+  assert.match(batchSheet,/<c r="D3"[^>]*><v>13<\/v>/);
+  assert.match(batchSheet,/<row r="20"/);
+  assert.match(batchSheet,/autoFilter ref="A7:F20"/);
+  assert.match(batchStrings,/annotations.pdf/);
+  assert.match(batchStrings,/example.pdf/);
+  const batchValues = await page.evaluate(({sheet,strings}) => {
+    const parser = new DOMParser();
+    const shared = [...parser.parseFromString(strings,'text/xml').querySelectorAll('si')].map(item => item.textContent);
+    return [...parser.parseFromString(sheet,'text/xml').querySelectorAll('row')].filter(row => Number(row.getAttribute('r')) >= 8).map(row =>
+      [...row.querySelectorAll('c')].map(cell => cell.getAttribute('t') === 's' ? shared[Number(cell.querySelector('v').textContent)] : Number(cell.querySelector('v').textContent)));
+  },{sheet:batchSheet,strings:batchStrings});
+  assert.deepEqual(batchValues.map(row => row[0]),Array.from({length:13},(_,index) => index+1));
+  assert.deepEqual(batchValues.map(row => row[1]),[...Array(8).fill('annotations.pdf'),...Array(5).fill('example.pdf')]);
+  assert.ok(batchValues.every(row => row[2] === 1),'PDF page numbers stay local to each source');
+  assert.match(await batchZip.file('xl/workbook.xml').async('string'),/name="Fichiers"/);
+  assert.match(await batchZip.file('xl/worksheets/sheet2.xml').async('string'),/<row r="4"/);
+  await page.locator('#reset-filters').click();
+  await page.locator('#language').selectOption('en');
+  assert.match(await page.locator('#choose').innerText(),/Add PDFs/);
+  assert.match(await page.locator('.privacy').innerText(),/No documents are sent online/);
+  await page.locator('#language').selectOption('fr');
+  await page.screenshot({path:path.join(root,'tests','output','batch.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:path.join(root,'tests','output','batch-mobile.png'),fullPage:true});
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),false);
+  await page.setViewportSize({width:1360,height:1050});
+
+  await page.locator('#file').setInputFiles(path.join(generated,'pages.pdf'));
+  await page.waitForFunction(() => !document.querySelector('#progress-card').hidden);
+  await drop('partial.pdf');
+  await page.waitForFunction(() => document.querySelector('#progress-card').hidden);
+  assert.equal(await page.locator('#count').innerText(),'516');
+  assert.equal(await page.locator('#document-list .done').count(),5);
+
+  // A corrupt file in the middle never discards completed PDFs or prevents later ones.
+  await page.locator('#clear').click();
+  await page.locator('#file').setInputFiles(['annotations.pdf','corrupt.pdf','partial.pdf'].map(name => path.join(generated,name)));
+  await page.waitForFunction(() => document.querySelector('#progress-card').hidden);
+  assert.equal(await page.locator('#count').innerText(),'11');
+  assert.equal(await page.locator('#document-list .done').count(),2);
+  assert.equal(await page.locator('#document-list .error').count(),1);
+  assert.equal(await page.locator('#download').isDisabled(),true);
+  assert.match(await page.locator('#warning-list').innerText(),/corrupt.pdf/);
+  await page.locator('#accept-partial').check();
+  const omittedPromise = page.waitForEvent('download');
+  await page.locator('#download').click();
+  const omittedPath = path.join(root,'tests','output','batch-partial.xlsx');
+  await (await omittedPromise).saveAs(omittedPath);
+  const omittedZip = await JSZip.loadAsync(await readFile(omittedPath));
+  assert.match(await omittedZip.file('xl/sharedStrings.xml').async('string'),/Fichiers non extraits: corrupt.pdf/);
+
+  // Additional drops work during analysis; cancelling preserves completed PDFs.
+  await page.locator('#clear').click();
+  await openFile('annotations.pdf');
+  await page.locator('#file').setInputFiles(path.join(generated,'pages.pdf'));
+  await page.waitForFunction(() => !document.querySelector('#progress-card').hidden);
+  assert.equal(await page.locator('#choose').isDisabled(),false);
+  await drop('partial.pdf');
+  assert.equal(await page.locator('#document-list .queued').count(),1);
+  await page.locator('#cancel').click();
+  await page.waitForFunction(() => document.querySelector('#progress-card').hidden);
+  assert.equal(await page.locator('#count').innerText(),'8');
+  assert.equal(await page.locator('#document-list .cancelled').count(),2);
+  assert.equal(await page.locator('#download').isDisabled(),true);
+  await page.locator('#accept-partial').check();
+  assert.equal(await page.locator('#download').isDisabled(),false);
+  await openFile('partial.pdf');
+  assert.equal(await page.locator('#count').innerText(),'11');
+  assert.equal(await page.locator('#accept-partial').isChecked(),false);
+  await page.locator('#clear').click();
+  assert.equal(await page.locator('#document-list').isVisible(),false);
+  assert.equal(await page.locator('#rows tr').count(),0);
+  await page.locator('#mode-single').check();
+  assert.equal(await page.locator('#file').getAttribute('multiple'),null);
 
   // Exercise the real local example without publishing or modifying it.
   const source = path.join(root,'..','Exemples et modèles','Template commentaires possibles.pdf');
@@ -160,7 +291,8 @@ try {
   }
   assert.deepEqual(errors,[]);
   assert.ok(requests.every(url => url.startsWith(base) || url.startsWith('blob:') || url.startsWith('data:')),'No external requests');
-  const summary = {date:new Date().toISOString(),browser:await browser.version(),checks:'annotations, text geometry, literal HTML/formulas, Excel contents, full export with filters, FR/EN, mobile overflow, empty/corrupt files, long-cell block, partial extraction acknowledgement and Excel warning, demo, cancellation, 500 pages, local reference PDF, local-only requests',sourceCount,stress};
+  assert.deepEqual(writeRequests,[],'No upload or other HTTP write request');
+  const summary = {date:new Date().toISOString(),version:'0.8.0',browser:await browser.version(),checks:'annotations, text geometry, literal HTML/formulas, Excel contents, full export with filters, FR/EN, mobile overflow, empty/corrupt files, long-cell block, partial extraction acknowledgement and Excel warning, demo, cancellation, 500 pages, local reference PDF, local-only requests without uploads, multi-file selection and successive drops, combined workbook with sources, corrupt batch continuation, batch cancellation retaining completed files, shared footer/Excel disclaimer',sourceCount,stress};
   await writeFile(path.join(root,'tests','output','validation.json'),JSON.stringify(summary,null,2));
   await writeFile(path.join(root,'tests','output',`validation-${process.env.TEST_BROWSER || 'chrome'}.json`),JSON.stringify(summary,null,2));
   console.log('PASS: browser extraction, interface, Excel and local-only processing');

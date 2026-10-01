@@ -17,23 +17,26 @@
         <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="11"/><path d="M13 13h14v11H20l-5 4v-4h-2z"/><path d="M17 17h6m-6 4h4"/></svg>
         <span>Extracto <strong>Commento</strong></span>
       </a>
-      <div class="top-actions"><span class="version">PDF · v0.7 beta</span><label class="language"><span class="sr-only" data-i18n="language">Langue</span><select id="language"><option value="fr">Français</option><option value="en">English</option></select></label></div>
+      <div class="top-actions"><span class="version">PDF · v0.8</span><label class="language"><span class="sr-only" data-i18n="language">Langue</span><select id="language"><option value="fr">Français</option><option value="en">English</option></select></label></div>
     </header>
 
     <main>
       <section class="intro">
-        <p class="eyebrow" data-i18n="eyebrow">DU PDF AU TABLEAU, SIMPLEMENT</p>
-        <h1 data-i18n="headline">Vos commentaires PDF,<br>prêts pour Excel.</h1>
-        <p class="lead" data-i18n="lead">Extrayez, vérifiez et téléchargez. Vos documents restent sur votre appareil.</p>
-        <div class="privacy"><span aria-hidden="true">●</span><span data-i18n="privacy">Traitement local · aucun document envoyé</span></div>
+        <h1>EXTRACTO COMMENTO</h1>
+        <p class="lead" data-i18n="lead">Vos commentaires PDF, prêts pour Excel. Extrayez, vérifiez et téléchargez.</p>
+        <div class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 4-4 7-8 9-4-2-8-5-8-9V6z"/><path d="m8 12 3 3 5-6"/></svg><div><strong data-i18n="privacy">Traitement 100 % local</strong><p data-i18n="privacyDetail">Aucun document n’est envoyé en ligne. Vos PDF restent sur votre appareil.</p></div></div>
       </section>
 
       <ol class="steps" aria-label="Étapes" id="steps">
-        <li class="current"><span>1</span><b data-i18n="step1">Choisir un PDF</b></li>
+        <li class="current"><span>1</span><b data-i18n="step1">Choisir les PDF</b></li>
         <li><span>2</span><b data-i18n="step2">Vérifier les commentaires</b></li>
         <li><span>3</span><b data-i18n="step3">Télécharger Excel</b></li>
       </ol>
 
+      <fieldset class="import-mode" id="import-mode"><legend data-i18n="modeLabel">Mode d’extraction</legend>
+        <label><input id="mode-single" type="radio" name="mode" value="single" checked><span data-i18n="singleMode">Un PDF</span></label>
+        <label><input id="mode-batch" type="radio" name="mode" value="batch"><span data-i18n="batchMode">Plusieurs PDF → un Excel</span></label>
+      </fieldset>
       <section class="upload-card" id="dropzone" aria-labelledby="upload-title">
         <div class="upload-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M15 6h13l8 8v28H12V9a3 3 0 0 1 3-3z"/><path d="M28 6v9h8M24 33V21m-5 5 5-5 5 5"/></svg></div>
         <h2 id="upload-title" data-i18n="dropTitle">Déposez votre PDF ici</h2>
@@ -50,6 +53,7 @@
         <div class="file-description"><span class="file-badge">PDF</span><div><h2 id="filename"></h2><p id="filemeta"></p></div></div>
         <button id="clear" class="button secondary" data-i18n="clear">Effacer / changer</button>
       </section>
+      <ul class="document-list" id="document-list" aria-label="PDF du lot" hidden></ul>
       <div id="status-box" class="status-box" role="status" aria-live="polite" aria-atomic="true"><p id="status">Chargement de l’outil…</p></div>
       <div class="progress-card" id="progress-card" hidden>
         <div><span id="progress-label"></span><button class="button text-button" id="cancel" data-i18n="cancel">Annuler</button></div>
@@ -62,14 +66,15 @@
         <details id="diagnostics" class="diagnostics" hidden><summary id="diagnostics-title"></summary><ul id="warning-list"></ul></details>
         <div class="filters">
           <label class="search"><span data-i18n="searchLabel">Recherche</span><input id="search" type="search" placeholder="Rechercher un commentaire…" data-placeholder="searchPlaceholder"></label>
+          <label id="file-filter-label" hidden><span data-i18n="fileLabel">Fichier</span><select id="file-filter"><option value="" data-i18n="allFiles">Tous les fichiers</option></select></label>
           <label><span data-i18n="authorLabel">Auteur</span><select id="author-filter"><option value="" data-i18n="allAuthors">Tous les auteurs</option></select></label>
           <label><span data-i18n="typeLabel">Type</span><select id="type-filter"><option value="" data-i18n="allTypes">Tous les types</option></select></label>
           <label><span data-i18n="pageLabel">Page PDF</span><select id="page-filter"><option value="" data-i18n="allPages">Toutes les pages</option></select></label>
         </div>
         <div class="table-info"><span id="visible-count" role="status"></span><button id="reset-filters" class="button text-button" data-i18n="resetFilters">Réinitialiser les filtres</button></div>
-        <div class="table-scroll"><table><thead><tr><th scope="col">No</th><th scope="col" data-i18n="pageHeading">Page</th><th scope="col" data-i18n="authorLabel">Auteur</th><th scope="col" data-i18n="dateHeading">Date</th><th scope="col" data-i18n="typeLabel">Type</th><th scope="col" data-i18n="commentHeading">Commentaire</th></tr></thead><tbody id="rows"></tbody></table></div>
+        <div class="table-scroll"><table><thead><tr><th scope="col">No</th><th scope="col" id="file-heading" class="source-cell" data-i18n="fileLabel" hidden>Fichier</th><th scope="col" data-i18n="pageHeading">Page</th><th scope="col" data-i18n="authorLabel">Auteur</th><th scope="col" data-i18n="dateHeading">Date</th><th scope="col" data-i18n="typeLabel">Type</th><th scope="col" data-i18n="commentHeading">Commentaire</th></tr></thead><tbody id="rows"></tbody></table></div>
         <div class="pagination"><span id="pagination-label"></span><div><button id="previous" class="button secondary" data-i18n="previous">Précédent</button><button id="next" class="button secondary" data-i18n="next">Suivant</button></div></div>
-        <div id="partial-box" class="partial-box" hidden><label><input id="accept-partial" type="checkbox"><span data-i18n="acceptPartial">J’ai pris connaissance des pages incomplètes et je souhaite exporter ce résultat partiel.</span></label></div>
+        <div id="partial-box" class="partial-box" hidden><label><input id="accept-partial" type="checkbox"><span data-i18n="acceptPartial">J’ai pris connaissance des pages ou fichiers incomplets et je souhaite exporter ce résultat partiel.</span></label></div>
         <div class="export-bar"><div><h3 data-i18n="exportTitle">Votre tableau Excel</h3><p data-i18n="exportHint">L’export inclut tous les commentaires retenus, même avec un filtre actif.</p></div><button id="download" class="button primary" disabled data-i18n="download">Télécharger Excel</button></div>
       </section>
 
@@ -79,11 +84,16 @@
         <p data-i18n="helpEstimate">Le texte sous un surlignage ou un texte barré est estimé. Un fragment peut contenir plus de caractères que la sélection. Vérifiez-le dans le PDF original.</p>
         <p data-i18n="helpLimits">Les annotations aplaties dans une image ne peuvent pas être récupérées. Les PDF protégés par mot de passe doivent être déverrouillés au préalable. Les propriétés spécifiques à un éditeur peuvent ne pas être disponibles.</p>
         <p data-i18n="helpVolume">Cible : jusqu’à 300 Mo et 500 pages sur ordinateur. La consommation mémoire et le temps dépendent du document et de votre appareil. Le fichier est lu par portions; seules les pages utiles sont analysées pour le texte couvert.</p>
-        <p data-i18n="helpExport">Le navigateur choisit le dossier de téléchargement. Le fichier Excel comporte No, Page, Auteur, Date et Commentaire. Effacer libère les références de cette session, sans garantir un effacement sécurisé de la mémoire.</p>
+        <p data-i18n="helpExport">Le navigateur choisit le dossier de téléchargement. Excel comporte No, Page, Auteur, Date et Commentaire. En mode plusieurs PDF, une colonne Fichier et un onglet Fichiers identifient les sources et leur état. Effacer libère les références de cette session, sans garantir un effacement sécurisé de la mémoire.</p>
         <p class="dependencies">PDF.js 5.6.205 (Apache-2.0) · ExcelJS 4.4.0 (MIT)</p>
       </div></details>
     </main>
-    <footer><span>Extracto Commento</span><span data-i18n="footer">Un outil d’Anthony Chéruel · PDF uniquement</span></footer>
+    <footer>
+      <div class="footer-meta"><span>Anthony Chéruel · <span data-i18n="updated">Dernière mise à jour :</span> <time datetime="2026-10-01" data-i18n="updatedDate">1 octobre 2026</time></span>
+        <a class="github-link" href="https://github.com/ACFakkoh/Extracto-Commento" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.23c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg><span data-i18n="github">Code source sur GitHub</span></a>
+      </div>
+      <p class="disclaimer" id="disclaimer">Extracto Commento — Vérifiez les résultats avant utilisation. Le texte couvert par un surlignage ou un texte barré est estimé.</p>
+    </footer>
   </div>
   <noscript>JavaScript est requis pour lire le PDF localement et générer Excel.</noscript>
 </body>

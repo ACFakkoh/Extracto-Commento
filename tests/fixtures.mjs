@@ -41,7 +41,7 @@ export async function createFixtures() {
   addAnnotation(document,page,'StrikeOut',strike,'','Sam',undefined,{ QuadPoints:[strike[0],strike[3],strike[2],strike[3],strike[0],strike[1],strike[2],strike[1]] });
   addAnnotation(document,page,'Line',[60,470,320,492],'250 mm','Alex',undefined,{ L:[60,480,320,480] });
   page.drawText('5 commentaires attendus : note, zone de texte, surlignage, texte barre, ligne.',{ x:40,y:410,size:11,font });
-  await writeFile(path.join(root,'example.pdf'),await document.save());
+  if (!fs.existsSync(path.join(root,'example.pdf'))) await writeFile(path.join(root,'example.pdf'),await document.save());
 
   const fixture = await PDFDocument.create();
   const ff = await fixture.embedFont(StandardFonts.Helvetica);

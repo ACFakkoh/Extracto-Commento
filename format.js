@@ -1,5 +1,10 @@
 export const TYPES = ['Text', 'FreeText', 'Highlight', 'StrikeOut', 'Line'];
 
+export const DISCLAIMERS = {
+  fr: 'Extracto Commento — Vérifiez les résultats avant utilisation. Le texte couvert par un surlignage ou un texte barré est estimé.',
+  en: 'Extracto Commento — Review results before use. Text covered by highlights or strikeouts is estimated.',
+};
+
 export const LABELS = {
   fr: {
     unknown: 'Auteur inconnu', invalidDate: 'Date invalide',
@@ -44,7 +49,7 @@ export function commentText(record, lang = 'fr') {
   return record.note;
 }
 
-export function exportRows(records, lang = 'fr') {
-  return records.map(record => [record.no, record.page,
+export function exportRows(records, lang = 'fr', batch = false) {
+  return records.map(record => [record.no, ...(batch ? [record.sourceName] : []), record.page,
     record.author || LABELS[lang].unknown, pdfDate(record.modified, lang), commentText(record, lang)]);
 }

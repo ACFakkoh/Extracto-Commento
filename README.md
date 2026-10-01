@@ -1,8 +1,8 @@
 # Extracto Commento — PDF vers Excel
 
-Version 0.7.0-beta.1 · 1 octobre 2026
+Version 0.8.0 · 1 octobre 2026
 
-Application statique PDF seulement : ouvrir un document, vérifier les commentaires dans un tableau avec recherche et filtres, puis télécharger un classeur Excel. Traitement documentaire dans le navigateur. Les dépendances sont incluses dans `vendor/`; aucune connexion Internet n’est nécessaire pendant l’utilisation locale.
+Application statique PDF seulement : ouvrir un document ou un lot de PDF, vérifier les commentaires dans un tableau avec recherche et filtres, puis télécharger un classeur Excel. **Traitement 100 % local : aucun document n’est envoyé en ligne.** Les dépendances sont incluses dans `vendor/`; aucune connexion Internet n’est nécessaire pendant l’utilisation locale.
 
 ## Essayer en ligne
 
@@ -10,7 +10,9 @@ Application statique PDF seulement : ouvrir un document, vérifier les commentai
 
 Choisir un PDF, vérifier les commentaires et télécharger Excel. Le fichier PDF reste sur l’appareil; GitHub Pages fournit les fichiers de l’interface. Utiliser **Essayer un exemple** pour découvrir l’outil avec un PDF synthétique.
 
-Première version bêta : la cible de 300 Mo et 500 pages reste à valider sur des documents réels représentatifs. Les résultats des essais sont décrits dans [VALIDATION.md](VALIDATION.md).
+Pour combiner plusieurs documents, sélectionner **Plusieurs PDF → un Excel**. Choisir plusieurs fichiers ou les déposer successivement, y compris pendant l’analyse. La zone de dépôt reste ouverte et chaque PDF affiche son état. Télécharger ensuite un seul Excel : les commentaires sont réunis dans un tableau avec une colonne **Fichier**, et l’onglet **Fichiers** récapitule les sources, les quantités et les éventuels échecs. **Effacer / changer** vide le lot; changer de mode démarre une nouvelle extraction.
+
+La cible de 300 Mo et 500 pages par PDF reste à valider sur des documents réels représentatifs. Les résultats des essais sont décrits dans [VALIDATION.md](VALIDATION.md).
 
 ## Démarrer en local sur Windows
 
@@ -33,18 +35,19 @@ Le lanceur utilise Node.js présent dans le PATH, ou celui fourni par Codex sur 
 
 ## Comportement
 
-- Un PDF à la fois, par sélection ou glisser-déposer.
+- Mode **Un PDF** ou **Plusieurs PDF → un Excel**, par sélection ou glisser-déposer. En mode lot, les PDF sont analysés successivement et les fichiers terminés sont libérés; leurs commentaires restent en mémoire jusqu’à l’effacement ou au rechargement de la page.
 - Notes (`Text`), zones de texte (`FreeText`), surlignages (`Highlight`), textes barrés (`StrikeOut`) et lignes (`Line`).
 - Règles 0.6 conservées : surlignages sans note et lignes sans contenu exclus; textes barrés sans note retenus.
 - Texte couvert par un surlignage ou un texte barré estimé à partir de la géométrie PDF, marqué comme estimé dans l’interface.
 - FR/EN détecté selon le navigateur et modifiable manuellement.
-- Tableau en lecture seule, recherche, filtres auteur/type/page et pagination de 50 lignes.
-- Export des **cinq colonnes** No, Page, Auteur, Date, Commentaire, avec métadonnées et mise en forme.
+- Tableau en lecture seule, recherche, filtres auteur/type/page, filtre fichier en mode lot et pagination de 50 lignes.
+- Export des **cinq colonnes** No, Page, Auteur, Date, Commentaire pour un seul PDF. En mode lot : No, Fichier, Page, Auteur, Date, Commentaire et un onglet Fichiers. Numérotation globale des commentaires; numéros de page propres à chaque PDF.
 - L’export principal conserve **tous les commentaires retenus**, indépendamment des filtres du tableau. Le bouton affiche la quantité exportée.
-- Fichier : `nom_du_pdf_extraction_comm.xlsx`. Le navigateur décide de l’emplacement et des collisions de noms.
+- Fichier : `nom_du_pdf_extraction_comm.xlsx`, ou `Extracto_Commento_lot_extraction_comm.xlsx` pour un lot. Le navigateur décide de l’emplacement et des collisions de noms.
 - Avertissements sur les exclusions, types non pris en charge et texte couvert manquant.
-- En cas de page ou de texte illisible : résultat partiel, acceptation explicite avant l’export et avertissement dans Excel.
-- Annulation de l’analyse ou de la génération Excel; bouton Effacer pour revenir au choix de fichier.
+- En cas de page, texte ou fichier illisible : résultat partiel, acceptation explicite avant l’export et avertissement dans Excel. Un PDF invalide ne bloque pas les suivants dans un lot.
+- Annulation de l’analyse ou de la génération Excel; en mode lot, les PDF déjà terminés restent disponibles et les fichiers annulés sont signalés. Effacer vide l’extraction.
+- Le pied de page présente Anthony Chéruel, la date de mise à jour, le lien du dépôt GitHub et le même avertissement que le fichier Excel.
 
 L’interface, les fichiers Excel générés et les ressources de cette version ont une identité indépendante. Aucun asset de marque de la version bureau n’a été repris. Les données présentes dans les PDF importés restent les données du document original.
 
