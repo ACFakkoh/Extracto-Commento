@@ -1,6 +1,6 @@
 {
   "name": "extracto-commento-pdf",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "type": "module",
   "scripts": { "start": "node server.mjs", "test": "node tests/smoke.mjs", "test:stress": "node tests/smoke.mjs --stress" },

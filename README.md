@@ -1,6 +1,8 @@
 # Extracto Commento — PDF vers Excel
 
-Version 0.8.0 · 1 octobre 2026
+Version 0.8.1 · 3 octobre 2026
+
+La version 0.8.1 harmonise uniquement l’interface avec la charte QuickerUnits : bleu marine, turquoise et menthe, cartes blanches, champs et boutons cohérents. Le dépôt de PDF, les étapes 1–2–3, l’extraction et les exports restent ceux de la version 0.8.
 
 Application statique PDF seulement : ouvrir un document ou un lot de PDF, vérifier les commentaires dans un tableau avec recherche et filtres, puis télécharger un classeur Excel. **Traitement 100 % local : aucun document n’est envoyé en ligne.** Les dépendances sont incluses dans `vendor/`; aucune connexion Internet n’est nécessaire pendant l’utilisation locale.
 

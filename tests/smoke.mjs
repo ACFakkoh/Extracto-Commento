@@ -32,10 +32,10 @@ try {
   await page.goto(base);
   await page.waitForFunction(() => !document.querySelector('#choose').disabled);
   assert.equal(await page.locator('h1').innerText(),'EXTRACTO COMMENTO');
-  assert.equal(await page.locator('.version').innerText(),'PDF · v0.8');
+  assert.equal(await page.locator('.version').innerText(),'PDF · v0.8.1');
   assert.equal(await page.getByText('DU PDF AU TABLEAU, SIMPLEMENT').count(),0);
   assert.match(await page.locator('.privacy').innerText(),/100 % local[\s\S]*Aucun document n’est envoyé en ligne/);
-  assert.equal(await page.locator('footer time').getAttribute('datetime'),'2026-10-01');
+  assert.equal(await page.locator('footer time').getAttribute('datetime'),'2026-10-03');
   assert.equal(await page.locator('.github-link').getAttribute('href'),'https://github.com/ACFakkoh/Extracto-Commento');
   await page.screenshot({ path:path.join(root,'tests','output','start.png'),fullPage:true });
   await openFile('annotations.pdf');
@@ -292,7 +292,7 @@ try {
   assert.deepEqual(errors,[]);
   assert.ok(requests.every(url => url.startsWith(base) || url.startsWith('blob:') || url.startsWith('data:')),'No external requests');
   assert.deepEqual(writeRequests,[],'No upload or other HTTP write request');
-  const summary = {date:new Date().toISOString(),version:'0.8.0',browser:await browser.version(),checks:'annotations, text geometry, literal HTML/formulas, Excel contents, full export with filters, FR/EN, mobile overflow, empty/corrupt files, long-cell block, partial extraction acknowledgement and Excel warning, demo, cancellation, 500 pages, local reference PDF, local-only requests without uploads, multi-file selection and successive drops, combined workbook with sources, corrupt batch continuation, batch cancellation retaining completed files, shared footer/Excel disclaimer',sourceCount,stress};
+  const summary = {date:new Date().toISOString(),version:'0.8.1',browser:await browser.version(),checks:'annotations, text geometry, literal HTML/formulas, Excel contents, full export with filters, FR/EN, mobile overflow, empty/corrupt files, long-cell block, partial extraction acknowledgement and Excel warning, demo, cancellation, 500 pages, local reference PDF, local-only requests without uploads, multi-file selection and successive drops, combined workbook with sources, corrupt batch continuation, batch cancellation retaining completed files, shared footer/Excel disclaimer',sourceCount,stress};
   await writeFile(path.join(root,'tests','output','validation.json'),JSON.stringify(summary,null,2));
   await writeFile(path.join(root,'tests','output',`validation-${process.env.TEST_BROWSER || 'chrome'}.json`),JSON.stringify(summary,null,2));
   console.log('PASS: browser extraction, interface, Excel and local-only processing');

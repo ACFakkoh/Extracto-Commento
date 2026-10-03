@@ -1,6 +1,8 @@
-# Validation de la version 0.8
+# Validation de la version 0.8.1
 
-Date : 1 octobre 2026. Essais automatiques dans de vrais navigateurs Windows : **Chrome 154.0.8037.58** et **Microsoft Edge 154.0.4258.48**, via Playwright. Le code Python de la version bureau est resté intact.
+Mise à jour UI : 3 octobre 2026. Palette et composants inspirés de QuickerUnits v0.2, bandeau marine, cartes blanches, accents turquoise et menthe. Les moteurs PDF et Excel sont inchangés. Le scénario de régression a été réexécuté avec succès dans Chrome et Edge. L’interface a aussi été contrôlée en FR/EN, en mode simple et lot, aux largeurs 320, 375, 768, 1024 et 1440 px : aucun débordement global, focus clavier visible. Captures ordinateur et mobile inspectées dans `tests/output/`.
+
+Validation initiale du moteur : 1 octobre 2026. Essais automatiques dans de vrais navigateurs Windows : **Chrome 154.0.8037.58** et **Microsoft Edge 154.0.4258.48**, via Playwright. Le code Python de la version bureau est resté intact.
 
 ## Résultats
 
@@ -16,7 +18,7 @@ Date : 1 octobre 2026. Essais automatiques dans de vrais navigateurs Windows : *
 - Filtres, recherche, filtre par fichier, FR/EN, effacement et pagination vérifiés.
 - PDF corrompu au milieu d’un lot : les autres PDF sont conservés et les fichiers suivants analysés. Export bloqué avant acceptation du résultat partiel; fichier omis mentionné dans Excel.
 - Annulation d’un lot : les commentaires des PDF terminés restent disponibles, le fichier actif et les fichiers en attente sont signalés comme annulés. Un nouvel ajout complète le lot et réinitialise l’acceptation du résultat partiel.
-- Titre EXTRACTO COMMENTO, version 0.8, mention de traitement local, date et lien GitHub vérifiés. Disclaimer du pied de page comparé à la cellule A5 de l’Excel : identique.
+- Titre EXTRACTO COMMENTO, version affichée, mention de traitement local, date et lien GitHub vérifiés. Disclaimer du pied de page comparé à la cellule A5 de l’Excel : identique.
 - Fichiers vides sans commentaires, fichiers invalides et corrompus : états distincts.
 - Commentaire au-delà de la capacité Excel : export bloqué sans troncature.
 - Annulation pendant le traitement de 500 pages, puis nouvel import réussi.
